@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ponto Fácil</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700;9..144,900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --cream:#FAF7EF;
+    --cream-deep:#F2EDDF;
+    --forest:#2F5233;
+    --forest-deep:#1E3B23;
+    --sage:#7A9A6B;
+    --sage-pale:#E7EEDF;
+    --gold:#C9A227;
+    --gold-deep:#A47B1B;
+    --gold-pale:#F3E6BB;
+    --ink:#211F1A;
+    --ink-soft:#5B564A;
+    --white:#FFFFFF;
+    --line:#E4DFCF;
+    --danger:#B5502F;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0;
+    height:100vh; height:100dvh;
+    background:
+      radial-gradient(circle at 8% 8%, var(--sage-pale) 0%, transparent 40%),
+      radial-gradient(circle at 95% 100%, var(--gold-pale) 0%, transparent 38%),
+      var(--cream);
+    font-family:'Inter', sans-serif;
+    color:var(--ink);
+    overflow:hidden;
+    -webkit-user-select:none; user-select:none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app{ position:relative; width:100vw; height:100vh; height:100dvh; overflow:hidden; }
+  @media (max-width:760px){
+    .screen{ padding:18px 18px; }
+    .house-name{ font-size:23px; }
+    .clock{ font-size:32px; }
+    .tile{ min-width:130px; padding:14px 16px; }
+    .tile-name{ font-size:16px; }
+    .stamp-btn{ width:104px; height:104px; font-size:15px; }
+    .admin-top{ flex-wrap:wrap; gap:10px; padding:14px 18px; }
+    .admin-tabs{ flex-wrap:wrap; }
+    .admin-body{ padding:18px; }
+    table{ font-size:12px; }
+    .login-card{ width:88vw; padding:28px 24px; }
+  }
+  @media (max-width:420px){
+    .tile{ min-width:110px; flex:1 1 45%; }
+    .clock{ font-size:26px; }
+    .stamp-btn{ width:92px; height:92px; font-size:13px; }
+  }
+  .screen{
+    position:absolute; inset:0;
+    display:none;
+    flex-direction:column;
+    padding:28px 36px;
+    animation: fadeIn .35s ease;
+  }
+  .screen.active{ display:flex; }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  h1,h2,h3{ font-family:'Fraunces', serif; margin:0; color:var(--forest-deep); }
+
+  /* ---------- HOME ---------- */
+  .home-header{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    border-bottom:2px solid var(--line); padding-bottom:18px; margin-bottom:22px;
+  }
+  .house-name{ font-size:30px; font-weight:700; letter-spacing:.2px; }
+  .house-sub{ font-family:'Inter'; color:var(--ink-soft); font-size:14px; margin-top:2px; font-weight:500;}
+  .clock-box{ text-align:right; }
+  .clock{
+    font-family:'Fraunces', serif; font-variant-numeric: tabular-nums;
+    font-size:44px; font-weight:600; color:var(--forest); line-height:1;
+  }
+  .date-line{ font-size:14px; color:var(--ink-soft); margin-top:4px; text-transform:capitalize; font-weight:500;}
+
+  .home-body{ flex:1; display:flex; flex-direction:column; min-height:0; }
+  .prompt{ font-size:15px; color:var(--ink-soft); margin-bottom:14px; font-weight:600; letter-spacing:.3px; text-transform:uppercase;}
+
+  .tiles{
+    display:flex; flex-wrap:wrap; gap:16px; overflow-y:auto; padding-bottom:8px; align-content:flex-start;
+    flex:1;
+  }
+  .tile{
+    background:var(--white); border:2px solid var(--line); border-radius:18px;
+    padding:18px 20px; min-width:170px; flex:1 1 170px; max-width:230px;
+    cursor:pointer; text-align:left; transition:.18s ease;
+    box-shadow:0 2px 6px rgba(31,28,20,.05);
+  }
+  .tile:active{ transform:scale(.97); }
+  .tile.selected{
+    border-color:var(--gold); background:var(--gold-pale);
+    box-shadow:0 4px 14px rgba(201,162,39,.28);
+  }
+  .tile-name{ font-family:'Fraunces', serif; font-weight:600; font-size:19px; color:var(--forest-deep); }
+  .tile-status{ margin-top:8px; font-size:13px; font-weight:600; display:flex; align-items:center; gap:6px;}
+  .dot{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+  .dot.green{ background:#3F8A4D; }
+  .dot.amber{ background:var(--gold-deep); }
+  .dot.grey{ background:#B9B3A0; }
+
+  .home-footer{ display:flex; justify-content:center; align-items:center; gap:18px; padding-top:18px; }
+  .stamp-btn{
+    background: radial-gradient(circle at 32% 28%, #E4C24E, var(--gold) 55%, var(--gold-deep) 100%);
+    color:var(--forest-deep); border:none; border-radius:50%;
+    width:132px; height:132px; font-family:'Fraunces', serif; font-weight:700; font-size:18px;
+    box-shadow:0 10px 0 var(--gold-deep), 0 14px 20px rgba(164,123,27,.35);
+    cursor:pointer; letter-spacing:.3px;
+    transition: transform .08s ease, box-shadow .08s ease;
+    display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.15;
+  }
+  .stamp-btn:disabled{
+    background:#DAD5C4; color:#9C9686; box-shadow:0 10px 0 #C4BFAE;
+    cursor:not-allowed;
+  }
+  .stamp-btn:not(:disabled):active{
+    transform: translateY(8px); box-shadow:0 2px 0 var(--gold-deep), 0 4px 8px rgba(164,123,27,.3);
+  }
+  .selected-hint{ font-size:15px; color:var(--ink-soft); font-weight:600; }
+  .selected-hint b{ color:var(--forest-deep); }
+
+  .gear{
+    position:absolute; bottom:14px; right:16px; width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--line); background:var(--white); color:var(--ink-soft);
+    font-size:14px; display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:.55;
+  }
+
+  /* ---------- CAMERA ---------- */
+  .camera-screen{ align-items:center; justify-content:center; background:var(--forest-deep); padding:0; }
+  .camera-wrap{ position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  video{ max-width:100%; max-height:78%; border-radius:24px; transform:scaleX(-1); box-shadow:0 20px 50px rgba(0,0,0,.4); }
+  .camera-caption{ position:absolute; top:26px; left:0; right:0; text-align:center; color:var(--gold-pale); font-family:'Fraunces',serif; font-size:22px; font-weight:600;}
+  .camera-actions{ position:absolute; bottom:30px; left:0; right:0; display:flex; justify-content:center; gap:20px; }
+  .shutter{
+    width:78px; height:78px; border-radius:50%; background:var(--white); border:6px solid var(--gold);
+    cursor:pointer;
+  }
+  .cam-skip{
+    background:transparent; border:1px solid rgba(255,255,255,.4); color:var(--gold-pale);
+    padding:0 22px; border-radius:24px; font-size:14px; cursor:pointer; font-weight:600;
+  }
+
+  /* ---------- TICKET (confirmação) ---------- */
+  .ticket-overlay{
+    position:absolute; inset:0; background:rgba(30,59,35,.55);
+    display:flex; align-items:center; justify-content:center; z-index:50;
+  }
+  .ticket{
+    background:var(--white); border-radius:6px 6px 22px 22px; width:300px; padding:0 0 22px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    animation: dropIn .45s cubic-bezier(.2,.9,.3,1.2);
+    text-align:center; overflow:hidden;
+  }
+  @keyframes dropIn{ from{ transform:translateY(-140px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+  .ticket-top{ background:var(--forest); color:var(--gold-pale); padding:14px; font-family:'Fraunces',serif; font-weight:700; font-size:16px; letter-spacing:.5px; }
+  .ticket-photo{ width:96px; height:96px; border-radius:50%; object-fit:cover; margin:18px auto 8px; border:4px solid var(--gold-pale); display:block; }
+  .ticket-name{ font-family:'Fraunces', serif; font-size:21px; font-weight:700; margin-top:6px; }
+  .ticket-type{ display:inline-block; margin-top:8px; padding:4px 14px; border-radius:20px; font-weight:700; font-size:13px; }
+  .ticket-type.entrada{ background:var(--sage-pale); color:var(--forest-deep); }
+  .ticket-type.saida{ background:var(--gold-pale); color:var(--gold-deep); }
+  .ticket-time{ font-family:'Fraunces', serif; font-size:34px; font-weight:600; color:var(--forest); margin-top:10px; }
+  .ticket-date{ font-size:13px; color:var(--ink-soft); margin-top:2px; }
+
+  /* ---------- ADMIN LOGIN ---------- */
+  .admin-login{ align-items:center; justify-content:center; }
+  .login-card{ background:var(--white); border-radius:22px; padding:36px 40px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.08); width:320px; }
+  .pin-dots{ display:flex; gap:12px; justify-content:center; margin:18px 0; }
+  .pin-dot{ width:16px; height:16px; border-radius:50%; border:2px solid var(--line); }
+  .pin-dot.filled{ background:var(--forest); border-color:var(--forest); }
+  .keypad{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+  .key{ padding:16px 0; border-radius:14px; border:1px solid var(--line); background:var(--cream); font-size:19px; font-weight:700; cursor:pointer; color:var(--ink); }
+  .key:active{ background:var(--sage-pale); }
+  .back-link{ margin-top:18px; background:none; border:none; color:var(--ink-soft); text-decoration:underline; cursor:pointer; font-size:13px;}
+  .pin-error{ color:var(--danger); font-size:13px; font-weight:600; height:16px; margin-top:6px; }
+
+  /* ---------- ADMIN PANEL ---------- */
+  .admin-screen{ padding:0; }
+  .admin-top{ display:flex; align-items:center; justify-content:space-between; padding:20px 30px; border-bottom:2px solid var(--line); background:var(--white); }
+  .admin-tabs{ display:flex; gap:6px; }
+  .tab-btn{ padding:9px 18px; border-radius:20px; border:1px solid var(--line); background:var(--cream); font-weight:700; font-size:13.5px; cursor:pointer; color:var(--ink-soft); }
+  .tab-btn.active{ background:var(--forest); color:var(--white); border-color:var(--forest); }
+  .exit-admin{ background:none; border:1px solid var(--line); border-radius:20px; padding:8px 18px; font-weight:700; font-size:13px; cursor:pointer; color:var(--ink-soft);}
+  .admin-body{ flex:1; overflow-y:auto; padding:24px 30px; }
+  .banner{
+    background:linear-gradient(90deg, var(--gold-pale), var(--sage-pale));
+    border:1px solid var(--gold); border-radius:16px; padding:16px 20px; margin-bottom:20px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .banner-text{ font-weight:700; font-size:14.5px; color:var(--forest-deep); }
+  .banner-sub{ font-weight:500; font-size:12.5px; color:var(--ink-soft); margin-top:3px;}
+  .btn{ border:none; border-radius:12px; padding:11px 20px; font-weight:700; font-size:13.5px; cursor:pointer; }
+  .btn.primary{ background:var(--forest); color:var(--white); }
+  .btn.gold{ background:var(--gold); color:var(--forest-deep); }
+  .btn.ghost{ background:var(--white); border:1px solid var(--line); color:var(--ink); }
+  .btn.danger{ background:transparent; color:var(--danger); border:1px solid var(--danger); }
+  .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+  .card{ background:var(--white); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:16px; }
+  .field{ padding:11px 14px; border:1px solid var(--line); border-radius:10px; font-size:14px; font-family:'Inter'; flex:1; min-width:160px; }
+
+  .emp-list{ display:flex; flex-direction:column; gap:10px; margin-top:14px; }
+  .emp-item{ display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:var(--cream); border-radius:12px; }
+  .emp-item span{ font-weight:700; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; padding:10px 8px; color:var(--ink-soft); border-bottom:2px solid var(--line); font-size:12px; text-transform:uppercase; letter-spacing:.4px;}
+  td{ padding:9px 8px; border-bottom:1px solid var(--line); }
+  tr.total-row td{ font-weight:800; border-bottom:none; border-top:2px solid var(--forest); background:var(--sage-pale); }
+  .thumb{ width:34px; height:34px; border-radius:50%; object-fit:cover; cursor:pointer; border:2px solid var(--line); }
+  .status-pill{ padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700; }
+  .status-pill.ok{ background:#DEF0DF; color:#256B33; }
+  .status-pill.low{ background:#F7E3D3; color:var(--danger); }
+  .status-pill.extra{ background:#DDEAF5; color:#2A5D82; }
+
+  select{ padding:10px 12px; border-radius:10px; border:1px solid var(--line); font-family:'Inter'; font-weight:600; font-size:14px;}
+
+  .empty{ text-align:center; padding:40px 0; color:var(--ink-soft); }
+
+  .photo-modal{ position:absolute; inset:0; background:rgba(0,0,0,.7); display:flex; align-items:center; justify-content:center; z-index:80; }
+  .photo-modal img{ max-width:80%; max-height:80%; border-radius:16px; border:6px solid var(--white); }
+
+  ::-webkit-scrollbar{ width:8px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:4px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HOME SCREEN -->
+  <div class="screen active" id="screen-home">
+    <div class="home-header">
+      <div>
+        <div class="house-name" id="house-name-display">Casa</div>
+        <div class="house-sub">Registro de ponto</div>
+      </div>
+      <div class="clock-box">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="date-line" id="date-line">-</div>
+      </div>
+    </div>
+    <div class="home-body">
+      <div class="prompt">Quem está batendo o ponto?</div>
+      <div class="tiles" id="tiles"></div>
+    </div>
+    <div class="home-footer">
+      <div class="selected-hint" id="selected-hint">Toque no seu nome acima</div>
+    </div>
+    <div class="home-footer" style="padding-top:6px;">
+      <button class="stamp-btn" id="stamp-btn" disabled>Bater<br>Ponto</button>
+    </div>
+    <div class="gear" id="gear-btn">⚙</div>
+  </div>
+
+  <!-- CAMERA SCREEN -->
+  <div class="screen camera-screen" id="screen-camera">
+    <div class="camera-wrap">
+      <div class="camera-caption" id="camera-caption">Sorria!</div>
+      <video id="video" autoplay playsinline></video>
+      <canvas id="canvas" style="display:none;"></canvas>
+      <div class="camera-actions">
+        <button class="shutter" id="shutter-btn"></button>
+      </div>
+      <button class="cam-skip" id="cam-skip-btn" style="position:absolute; bottom:34px; right:36px;">Registrar sem foto</button>
+    </div>
+  </div>
+
+  <!-- ADMIN LOGIN -->
+  <div class="screen admin-login" id="screen-login">
+    <div class="login-card">
+      <h3>Acesso administrativo</h3>
+      <div style="font-size:13px; color:var(--ink-soft); margin-top:6px;">Digite o código de 4 dígitos</div>
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="keypad" id="keypad"></div>
+      <button class="back-link" id="back-to-home">Voltar</button>
+    </div>
+  </div>
+
+  <!-- ADMIN PANEL -->
+  <div class="screen admin-screen" id="screen-admin">
+    <div class="admin-top">
+      <h2 style="font-size:22px;">Painel administrativo</h2>
+      <div class="admin-tabs">
+        <button class="tab-btn active" data-tab="funcionarias">Funcionárias</button>
+        <button class="tab-btn" data-tab="registros">Registros</button>
+        <button class="tab-btn" data-tab="fechamento">Fechamento mensal</button>
+        <button class="tab-btn" data-tab="config">Configurações</button>
+      </div>
+      <button class="exit-admin" id="exit-admin-btn">Sair ✕</button>
+    </div>
+    <div class="admin-body" id="admin-body"></div>
+  </div>
+
+  <!-- TICKET OVERLAY (hidden by default) -->
+  <div class="ticket-overlay" id="ticket-overlay" style="display:none;">
+    <div class="ticket">
+      <div class="ticket-top">PONTO REGISTRADO</div>
+      <img class="ticket-photo" id="ticket-photo" src="" alt="">
+      <div class="ticket-name" id="ticket-name">-</div>
+      <div class="ticket-type" id="ticket-type">-</div>
+      <div class="ticket-time" id="ticket-time">--:--</div>
+      <div class="ticket-date" id="ticket-date">-</div>
+    </div>
+  </div>
+
+  <!-- PHOTO MODAL -->
+  <div class="photo-modal" id="photo-modal" style="display:none;">
+    <img id="photo-modal-img" src="">
+  </div>
+
+</div>
+
+<script>
+/* ============================ STORAGE HELPERS (IndexedDB local ao aparelho) ============================ */
+const DB_NAME = 'pontofacil-db';
+const STORE_NAME = 'kv';
+let _dbPromise = null;
+function openDB(){
+  if(_dbPromise) return _dbPromise;
+  _dbPromise = new Promise((resolve, reject) => {
+    if(!window.indexedDB){ reject(new Error('IndexedDB indisponível')); return; }
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = (e) => { e.target.result.createObjectStore(STORE_NAME); };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return _dbPromise;
+}
+async function getData(key, fallback){
+  try{
+    const db = await openDB();
+    return await new Promise((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result !== undefined ? req.result : fallback);
+      req.onerror = () => resolve(fallback);
+    });
+  }catch(e){ console.error('Erro ao ler dados', e); return fallback; }
+}
+async function setData(key, value){
+  try{
+    const db = await openDB();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  }catch(e){ console.error('Erro ao salvar dados', e); alert('Não foi possível salvar. Verifique o espaço de armazenamento do navegador.'); return false; }
+}
+
+/* ============================ STATE ============================ */
+let CONFIG = { pin:'1234', casaNome:'Casa' };
+let FUNCIONARIAS = []; // [{id, nome, ativa}]
+let selectedId = null;
+let pendingTipo = null;
+let stream = null;
+let pinBuffer = '';
+let currentAdminTab = 'funcionarias';
+let currentMonthFilter = null;
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+function pad(n){ return n.toString().padStart(2,'0'); }
+function todayStr(d=new Date()){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function monthKeyOf(dateStr){ return dateStr.slice(0,7); }
+function nowHMS(d=new Date()){ return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; }
+function formatDateBR(dateStr){ const [y,m,d]=dateStr.split('-'); return `${d}/${m}/${y}`; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const DIAS = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+
+/* ============================ INIT ============================ */
+async function init(){
+  CONFIG = await getData('config', { pin:'1234', casaNome:'Casa' });
+  FUNCIONARIAS = await getData('funcionarias', []);
+  $('#house-name-display').textContent = CONFIG.casaNome || 'Casa';
+  await renderTiles();
+  tickClock();
+  setInterval(tickClock, 1000);
+  setInterval(renderTiles, 15000);
+  buildKeypad();
+}
+document.addEventListener('DOMContentLoaded', init);
+
+function tickClock(){
+  const now = new Date();
+  $('#clock').textContent = nowHMS(now);
+  $('#date-line').textContent = `${DIAS[now.getDay()]}, ${now.getDate()} de ${MESES[now.getMonth()]}`;
+}
+
+/* ============================ HOME / TILES ============================ */
+async function getTodayRegistros(){
+  const mk = monthKeyOf(todayStr());
+  const list = await getData(`registros:${mk}`, []);
+  return list.filter(r => r.data === todayStr());
+}
+
+async function renderTiles(){
+  const todays = await getTodayRegistros();
+  const wrap = $('#tiles');
+  wrap.innerHTML = '';
+  const ativos = FUNCIONARIAS.filter(f => f.ativa !== false);
+  if(ativos.length === 0){
+    wrap.innerHTML = '<div class="empty">Nenhuma funcionária cadastrada.<br>Acesse o painel administrativo (⚙) para adicionar.</div>';
+    return;
+  }
+  ativos.forEach(f => {
+    const mine = todays.filter(r => r.funcionariaId === f.id);
+    let statusHtml, dotClass;
+    if(mine.length === 0){ statusHtml = 'Sem registro hoje'; dotClass='grey'; }
+    else {
+      const last = mine[mine.length-1];
+      if(last.tipo === 'entrada'){ statusHtml = `Entrada às ${last.hora.slice(0,5)}`; dotClass='amber'; }
+      else { statusHtml = `Saída às ${last.hora.slice(0,5)}`; dotClass='green'; }
+    }
+    const div = document.createElement('div');
+    div.className = 'tile' + (selectedId === f.id ? ' selected' : '');
+    div.innerHTML = `<div class="tile-name">${f.nome}</div><div class="tile-status"><span class="dot ${dotClass}"></span>${statusHtml}</div>`;
+    div.onclick = () => selectEmployee(f.id);
+    wrap.appendChild(div);
+  });
+}
+
+function selectEmployee(id){
+  selectedId = id;
+  renderTiles();
+  const f = FUNCIONARIAS.find(x => x.id === id);
+  $('#selected-hint').innerHTML = `Selecionada: <b>${f.nome}</b>`;
+  $('#stamp-btn').disabled = false;
+}
+
+$('#stamp-btn').onclick = async () => {
+  if(!selectedId) return;
+  const todays = await getTodayRegistros();
+  const mine = todays.filter(r => r.funcionariaId === selectedId);
+  pendingTipo = (mine.length % 2 === 0) ? 'entrada' : 'saida';
+  openCamera();
+};
+
+$('#gear-btn').onclick = () => { showScreen('screen-login'); pinBuffer=''; renderPinDots(); };
+
+/* ============================ CAMERA ============================ */
+async function openCamera(){
+  showScreen('screen-camera');
+  $('#camera-caption').textContent = 'Sorria! Registrando ' + (pendingTipo === 'entrada' ? 'entrada' : 'saída');
+  $('#video').style.display = '';
+  $('#shutter-btn').style.display = '';
+  hideCameraError();
+
+  if(!window.isSecureContext){
+    showCameraError('A câmera só funciona em um endereço seguro (https://). Este arquivo foi aberto localmente. Hospede o app em um link https e abra por ele.');
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    showCameraError('Este navegador não tem suporte à câmera nesta página.');
+    return;
+  }
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode:'user' }, audio:false });
+    $('#video').srcObject = stream;
+  }catch(e){
+    let msg = 'Não foi possível acessar a câmera.';
+    if(e && e.name === 'NotAllowedError') msg = 'Permissão da câmera negada. Toque no cadeado/ícone ao lado do endereço e permita a câmera para este site.';
+    else if(e && e.name === 'NotFoundError') msg = 'Nenhuma câmera foi encontrada neste aparelho.';
+    else if(e && e.name === 'NotReadableError') msg = 'A câmera está sendo usada por outro aplicativo.';
+    showCameraError(msg);
+  }
+}
+function showCameraError(msg){
+  $('#video').style.display = 'none';
+  $('#shutter-btn').style.display = 'none';
+  let box = $('#camera-error-box');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'camera-error-box';
+    box.style.cssText = 'max-width:340px; text-align:center; color:var(--gold-pale); font-size:15px; font-weight:600; padding:0 24px; line-height:1.5;';
+    $('.camera-wrap').appendChild(box);
+  }
+  box.textContent = msg;
+  box.style.display = 'block';
+}
+function hideCameraError(){
+  const box = $('#camera-error-box');
+  if(box) box.style.display = 'none';
+}
+function stopCamera(){
+  if(stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+$('#shutter-btn').onclick = () => {
+  const video = $('#video');
+  const canvas = $('#canvas');
+  const targetW = 240;
+  const scale = targetW / video.videoWidth;
+  canvas.width = targetW;
+  canvas.height = video.videoHeight * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.translate(canvas.width, 0); ctx.scale(-1,1); // espelha de volta ao normal
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.55);
+  stopCamera();
+  finishPunch(dataUrl);
+};
+$('#cam-skip-btn').onclick = () => { stopCamera(); finishPunch(null); };
+
+async function finishPunch(fotoDataUrl){
+  const now = new Date();
+  const data = todayStr(now);
+  const hora = nowHMS(now);
+  const f = FUNCIONARIAS.find(x => x.id === selectedId);
+  const registro = { id: uid(), funcionariaId: f.id, nome: f.nome, data, hora, tipo: pendingTipo, foto: fotoDataUrl };
+  const mk = monthKeyOf(data);
+  const list = await getData(`registros:${mk}`, []);
+  list.push(registro);
+  await setData(`registros:${mk}`, list);
+  showTicket(registro);
+  await renderTiles();
+  selectedId = null;
+  $('#selected-hint').textContent = 'Toque no seu nome acima';
+  $('#stamp-btn').disabled = true;
+}
+
+/* ============================ TICKET ============================ */
+function showTicket(registro){
+  showScreen('screen-home');
+  $('#ticket-photo').src = registro.foto || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96"><rect width="96" height="96" fill="%23E7EEDF"/></svg>';
+  $('#ticket-name').textContent = registro.nome;
+  const typeEl = $('#ticket-type');
+  typeEl.textContent = registro.tipo === 'entrada' ? 'ENTRADA' : 'SAÍDA';
+  typeEl.className = 'ticket-type ' + registro.tipo;
+  $('#ticket-time').textContent = registro.hora.slice(0,5);
+  $('#ticket-date').textContent = formatDateBR(registro.data);
+  $('#ticket-overlay').style.display = 'flex';
+  setTimeout(() => { $('#ticket-overlay').style.display = 'none'; }, 3200);
+}
+
+/* ============================ SCREEN NAV ============================ */
+function showScreen(id){
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  $('#'+id).classList.add('active');
+}
+
+/* ============================ ADMIN LOGIN ============================ */
+function buildKeypad(){
+  const keys = ['1','2','3','4','5','6','7','8','9','','0','⌫'];
+  const kp = $('#keypad');
+  kp.innerHTML = '';
+  keys.forEach(k => {
+    const b = document.createElement('button');
+    b.className = 'key';
+    b.textContent = k;
+    if(k === ''){ b.style.visibility='hidden'; }
+    b.onclick = () => handleKey(k);
+    kp.appendChild(b);
+  });
+}
+function renderPinDots(){
+  $$('#pin-dots .pin-dot').forEach((d,i) => d.classList.toggle('filled', i < pinBuffer.length));
+}
+async function handleKey(k){
+  if(k === '' ) return;
+  if(k === '⌫'){ pinBuffer = pinBuffer.slice(0,-1); renderPinDots(); return; }
+  if(pinBuffer.length >= 4) return;
+  pinBuffer += k;
+  renderPinDots();
+  if(pinBuffer.length === 4){
+    if(pinBuffer === CONFIG.pin){
+      $('#pin-error').textContent = '';
+      pinBuffer=''; renderPinDots();
+      currentAdminTab = 'funcionarias';
+      await openAdmin();
+    } else {
+      $('#pin-error').textContent = 'Código incorreto';
+      setTimeout(()=>{ pinBuffer=''; renderPinDots(); $('#pin-error').textContent=''; }, 700);
+    }
+  }
+}
+$('#back-to-home').onclick = () => showScreen('screen-home');
+$('#exit-admin-btn').onclick = () => showScreen('screen-home');
+
+/* ============================ ADMIN PANEL ============================ */
+$$('.tab-btn').forEach(btn => {
+  btn.onclick = () => { currentAdminTab = btn.dataset.tab; renderAdminTabs(); };
+});
+function renderAdminTabs(){
+  $$('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === currentAdminTab));
+  if(currentAdminTab === 'funcionarias') renderFuncionariasTab();
+  else if(currentAdminTab === 'registros') renderRegistrosTab();
+  else if(currentAdminTab === 'fechamento') renderFechamentoTab();
+  else if(currentAdminTab === 'config') renderConfigTab();
+}
+async function openAdmin(){
+  showScreen('screen-admin');
+  renderAdminTabs();
+}
+
+/* --- Funcionárias --- */
+function renderFuncionariasTab(){
+  const body = $('#admin-body');
+  body.innerHTML = `
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:12px;">Adicionar funcionária</h3>
+      <div class="row">
+        <input class="field" id="new-emp-name" placeholder="Nome completo">
+        <button class="btn primary" id="add-emp-btn">Adicionar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:16px;">Funcionárias cadastradas</h3>
+      <div class="emp-list" id="emp-list"></div>
+    </div>
+  `;
+  $('#add-emp-btn').onclick = async () => {
+    const name = $('#new-emp-name').value.trim();
+    if(!name) return;
+    FUNCIONARIAS.push({ id: uid(), nome: name, ativa: true });
+    await setData('funcionarias', FUNCIONARIAS);
+    renderFuncionariasTab();
+  };
+  const list = $('#emp-list');
+  list.innerHTML = '';
+  if(FUNCIONARIAS.length === 0){ list.innerHTML = '<div class="empty">Nenhuma funcionária ainda.</div>'; }
+  FUNCIONARIAS.forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'emp-item';
+    div.innerHTML = `<span>${f.nome} ${f.ativa===false ? '(inativa)' : ''}</span>`;
+    const btns = document.createElement('div');
+    btns.className = 'row';
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'btn ghost';
+    toggleBtn.textContent = f.ativa === false ? 'Reativar' : 'Desativar';
+    toggleBtn.onclick = async () => { f.ativa = f.ativa === false ? true : false; await setData('funcionarias', FUNCIONARIAS); renderFuncionariasTab(); };
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn danger';
+    delBtn.textContent = 'Remover';
+    delBtn.onclick = async () => {
+      if(!confirm(`Remover ${f.nome}? Os registros de ponto já feitos serão mantidos no histórico.`)) return;
+      FUNCIONARIAS = FUNCIONARIAS.filter(x => x.id !== f.id);
+      await setData('funcionarias', FUNCIONARIAS);
+      renderFuncionariasTab();
+    };
+    btns.appendChild(toggleBtn); btns.appendChild(delBtn);
+    div.appendChild(btns);
+    list.appendChild(div);
+  });
+}
+
+/* --- Cálculo de resumo mensal --- */
+async function computeMonthSummary(monthStr){
+  const registros = await getData(`registros:${monthStr}`, []);
+  const byEmp = {};
+  FUNCIONARIAS.forEach(f => byEmp[f.id] = { nome: f.nome, dias: {} });
+  registros.forEach(r => {
+    if(!byEmp[r.funcionariaId]) byEmp[r.funcionariaId] = { nome: r.nome, dias: {} };
+    if(!byEmp[r.funcionariaId].dias[r.data]) byEmp[r.funcionariaId].dias[r.data] = [];
+    byEmp[r.funcionariaId].dias[r.data].push(r);
+  });
+  const summary = {};
+  Object.keys(byEmp).forEach(empId => {
+    const dias = byEmp[empId].dias;
+    const diasArr = Object.keys(dias).sort();
+    const linhas = [];
+    let totalHoras = 0, diasTrabalhados = 0;
+    diasArr.forEach(dataStr => {
+      const eventos = dias[dataStr].slice().sort((a,b) => a.hora.localeCompare(b.hora));
+      let entradaHora = null, saidaHora = null, horasDia = 0;
+      for(let i=0;i<eventos.length;i+=2){
+        const ent = eventos[i]; const sai = eventos[i+1];
+        if(ent && ent.tipo === 'entrada') entradaHora = ent.hora;
+        if(sai && sai.tipo === 'saida'){
+          saidaHora = sai.hora;
+          const [h1,m1,s1] = ent.hora.split(':').map(Number);
+          const [h2,m2,s2] = sai.hora.split(':').map(Number);
+          let dur = (h2*3600+m2*60+s2 - (h1*3600+m1*60+s1))/3600;
+          if(dur > 1) dur -= 1; // desconta 1h de almoço
+          if(dur > 0) horasDia += dur;
+        }
+      }
+      if(horasDia > 0) diasTrabalhados++;
+      totalHoras += horasDia;
+      let status = 'ok';
+      if(horasDia < 7.92) status = 'low'; else if(horasDia > 8.1) status = 'extra';
+      linhas.push({ data: dataStr, entrada: entradaHora, saida: saidaHora, horas: horasDia, status, eventos });
+    });
+    const esperado = diasTrabalhados * 8;
+    summary[empId] = { nome: byEmp[empId].nome, linhas, totalHoras, diasTrabalhados, esperado, saldo: totalHoras - esperado };
+  });
+  return summary;
+}
+function fmtHoras(h){
+  const sign = h < 0 ? '-' : '';
+  h = Math.abs(h);
+  const hh = Math.floor(h);
+  const mm = Math.round((h - hh) * 60);
+  return `${sign}${hh}h${pad(mm)}`;
+}
+
+/* --- Registros tab --- */
+async function renderRegistrosTab(){
+  const body = $('#admin-body');
+  if(!currentMonthFilter) currentMonthFilter = monthKeyOf(todayStr());
+  body.innerHTML = `
+    <div class="row" style="margin-bottom:18px;">
+      <label style="font-weight:700; font-size:13px;">Mês:</label>
+      <input type="month" id="month-picker" class="field" style="max-width:180px;" value="${currentMonthFilter}">
+    </div>
+    <div id="registros-content"></div>
+  `;
+  $('#month-picker').onchange = (e) => { currentMonthFilter = e.target.value; renderRegistrosTab(); };
+  const summary = await computeMonthSummary(currentMonthFilter);
+  const content = $('#registros-content');
+  const empIds = Object.keys(summary).filter(id => summary[id].linhas.length > 0);
+  if(empIds.length === 0){ content.innerHTML = '<div class="empty">Nenhum registro neste mês.</div>'; return; }
+  content.innerHTML = '';
+  empIds.forEach(empId => {
+    const s = summary[empId];
+    const card = document.createElement('div');
+    card.className = 'card';
+    let rows = s.linhas.map(l => `
+      <tr>
+        <td>${formatDateBR(l.data)}</td>
+        <td>${l.entrada ? l.entrada.slice(0,5) : '—'}</td>
+        <td>${l.saida ? l.saida.slice(0,5) : '—'}</td>
+        <td>${fmtHoras(l.horas)}</td>
+        <td><span class="status-pill ${l.status === 'ok' ? 'ok' : l.status === 'low' ? 'low' : 'extra'}">${l.status === 'ok' ? 'Completo' : l.status === 'low' ? 'Abaixo' : 'Extra'}</span></td>
+        <td>${l.eventos.filter(e=>e.foto).map(e => `<img class="thumb" src="${e.foto}" data-full="${e.foto}">`).join(' ')}</td>
+      </tr>`).join('');
+    card.innerHTML = `
+      <h3 style="font-size:17px; margin-bottom:10px;">${s.nome}</h3>
+      <table>
+        <thead><tr><th>Data</th><th>Entrada</th><th>Saída</th><th>Horas</th><th>Status</th><th>Fotos</th></tr></thead>
+        <tbody>${rows}
+          <tr class="total-row"><td colspan="3">Total do mês</td><td>${fmtHoras(s.totalHoras)}</td><td colspan="2">Saldo: ${fmtHoras(s.saldo)}</td></tr>
+        </tbody>
+      </table>
+    `;
+    content.appendChild(card);
+  });
+  $$('.thumb').forEach(img => img.onclick = () => {
+    $('#photo-modal-img').src = img.dataset.full;
+    $('#photo-modal').style.display = 'flex';
+  });
+}
+$('#photo-modal').onclick = () => { $('#photo-modal').style.display = 'none'; };
+
+/* --- Fechamento mensal tab --- */
+function isFirstBusinessDayToday(){
+  const now = new Date();
+  const day = now.getDay();
+  if(day === 0 || day === 6) return false;
+  // percorre do dia 1 até hoje verificando se algum dia anterior útil já passou
+  for(let d = 1; d < now.getDate(); d++){
+    const dt = new Date(now.getFullYear(), now.getMonth(), d);
+    if(dt.getDay() !== 0 && dt.getDay() !== 6) return false;
+  }
+  return true;
+}
+function previousMonthStr(){
+  const now = new Date();
+  const d = new Date(now.getFullYear(), now.getMonth()-1, 1);
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
+}
+async function renderFechamentoTab(){
+  const body = $('#admin-body');
+  const prevMonth = previousMonthStr();
+  const [y,m] = prevMonth.split('-');
+  const mesNome = MESES[parseInt(m)-1];
+  const jaEnviado = await getData(`fechamento-enviado:${prevMonth}`, false);
+  let bannerHtml = '';
+  if(isFirstBusinessDayToday() && !jaEnviado){
+    bannerHtml = `
+      <div class="banner">
+        <div>
+          <div class="banner-text">📊 Fechamento de ${mesNome}/${y} pronto para envio</div>
+          <div class="banner-sub">Hoje é o primeiro dia útil do mês — hora de fechar as horas do mês anterior.</div>
+        </div>
+        <button class="btn primary" id="mark-sent-btn">Marcar como enviado</button>
+      </div>`;
+  }
+  body.innerHTML = `
+    ${bannerHtml}
+    <div class="row" style="margin-bottom:18px;">
+      <label style="font-weight:700; font-size:13px;">Mês do fechamento:</label>
+      <input type="month" id="close-month-picker" class="field" style="max-width:180px;" value="${prevMonth}">
+    </div>
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:10px;">1. Baixar planilha</h3>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;">Gera um arquivo .xlsx com os registros e o total de horas de cada funcionária no mês selecionado.</p>
+      <button class="btn gold" id="export-xlsx-btn">⬇ Baixar planilha (.xlsx)</button>
+    </div>
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:10px;">2. Enviar por e-mail</h3>
+      <p style="font-size:13.5px; color:var(--ink-soft); margin-bottom:14px;">
+        Abre seu aplicativo de e-mail com destinatário, assunto e resumo já preenchidos para <b>hamilton@newsi.com.br</b>.
+        Anexe a planilha baixada no passo 1 antes de enviar (os navegadores não permitem anexar automaticamente).
+      </p>
+      <button class="btn primary" id="prepare-email-btn">✉ Preparar e-mail</button>
+    </div>
+    <div id="summary-preview"></div>
+  `;
+  $('#close-month-picker').onchange = renderFechamentoTab; // simplificação: recarrega com novo valor ao trocar
+  const monthSel = () => $('#close-month-picker').value;
+
+  if(jaEnviado === undefined){}
+  if($('#mark-sent-btn')) $('#mark-sent-btn').onclick = async () => { await setData(`fechamento-enviado:${prevMonth}`, true); renderFechamentoTab(); };
+
+  $('#export-xlsx-btn').onclick = async () => { await exportXLSX(monthSel()); };
+  $('#prepare-email-btn').onclick = async () => { await prepareEmail(monthSel()); };
+
+  const summary = await computeMonthSummary(monthSel());
+  const empIds = Object.keys(summary).filter(id => summary[id].linhas.length > 0);
+  const preview = $('#summary-preview');
+  if(empIds.length === 0){ preview.innerHTML = '<div class="empty">Nenhum registro neste mês para fechar.</div>'; return; }
+  let rows = empIds.map(id => {
+    const s = summary[id];
+    return `<tr><td>${s.nome}</td><td>${s.diasTrabalhados}</td><td>${fmtHoras(s.totalHoras)}</td><td>${fmtHoras(s.esperado)}</td><td>${fmtHoras(s.saldo)}</td></tr>`;
+  }).join('');
+  preview.innerHTML = `
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:10px;">Resumo do mês</h3>
+      <table>
+        <thead><tr><th>Funcionária</th><th>Dias trabalhados</th><th>Total horas</th><th>Horas esperadas</th><th>Saldo</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
+async function exportXLSX(monthStr){
+  const summary = await computeMonthSummary(monthStr);
+  const empIds = Object.keys(summary).filter(id => summary[id].linhas.length > 0);
+  const [y,m] = monthStr.split('-');
+  const mesNome = MESES[parseInt(m)-1];
+  const wb = XLSX.utils.book_new();
+
+  const resumoData = [['Funcionária','Dias trabalhados','Total de horas','Horas esperadas','Saldo (h)']];
+  empIds.forEach(id => {
+    const s = summary[id];
+    resumoData.push([s.nome, s.diasTrabalhados, Number(s.totalHoras.toFixed(2)), s.esperado, Number(s.saldo.toFixed(2))]);
+  });
+  const wsResumo = XLSX.utils.aoa_to_sheet(resumoData);
+  XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo');
+
+  empIds.forEach(id => {
+    const s = summary[id];
+    const data = [['Data','Entrada','Saída','Horas trabalhadas','Status']];
+    s.linhas.forEach(l => {
+      data.push([formatDateBR(l.data), l.entrada ? l.entrada.slice(0,5) : '', l.saida ? l.saida.slice(0,5) : '', Number(l.horas.toFixed(2)), l.status === 'ok' ? 'Completo' : l.status === 'low' ? 'Abaixo de 8h' : 'Horas extras']);
+    });
+    data.push(['','','Total', Number(s.totalHoras.toFixed(2)), '']);
+    const sheetName = s.nome.slice(0,28).replace(/[\\/*?:\[\]]/g,'');
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, sheetName || id);
+  });
+
+  XLSX.writeFile(wb, `fechamento_${mesNome}_${y}.xlsx`);
+}
+
+async function prepareEmail(monthStr){
+  const summary = await computeMonthSummary(monthStr);
+  const empIds = Object.keys(summary).filter(id => summary[id].linhas.length > 0);
+  const [y,m] = monthStr.split('-');
+  const mesNome = MESES[parseInt(m)-1];
+  let bodyLines = [`Segue o fechamento de ponto de ${mesNome}/${y}.`, '', 'Resumo por funcionária:'];
+  empIds.forEach(id => {
+    const s = summary[id];
+    bodyLines.push(`- ${s.nome}: ${s.diasTrabalhados} dias, total ${fmtHoras(s.totalHoras)}, saldo ${fmtHoras(s.saldo)}`);
+  });
+  bodyLines.push('', 'Planilha completa em anexo (lembre-se de anexar o arquivo baixado).');
+  const subject = encodeURIComponent(`Fechamento de Ponto - ${mesNome}/${y}`);
+  const body = encodeURIComponent(bodyLines.join('\n'));
+  window.location.href = `mailto:hamilton@newsi.com.br?subject=${subject}&body=${body}`;
+}
+
+/* --- Config tab --- */
+function renderConfigTab(){
+  const body = $('#admin-body');
+  body.innerHTML = `
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:12px;">Nome da casa / anfitriã</h3>
+      <div class="row">
+        <input class="field" id="casa-nome-input" value="${CONFIG.casaNome || ''}">
+        <button class="btn primary" id="save-casa-nome">Salvar</button>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-size:16px; margin-bottom:12px;">Código de acesso administrativo</h3>
+      <div class="row">
+        <input class="field" id="new-pin" placeholder="Novo código (4 dígitos)" maxlength="4">
+        <button class="btn primary" id="save-pin">Salvar código</button>
+      </div>
+    </div>
+  `;
+  $('#save-casa-nome').onclick = async () => {
+    CONFIG.casaNome = $('#casa-nome-input').value.trim() || 'Casa';
+    await setData('config', CONFIG);
+    $('#house-name-display').textContent = CONFIG.casaNome;
+    alert('Nome salvo!');
+  };
+  $('#save-pin').onclick = async () => {
+    const v = $('#new-pin').value.trim();
+    if(!/^\d{4}$/.test(v)){ alert('O código deve ter exatamente 4 números.'); return; }
+    CONFIG.pin = v;
+    await setData('config', CONFIG);
+    alert('Código atualizado!');
+    $('#new-pin').value = '';
+  };
+}
+</script>
+</body>
+</html>
