@@ -558,7 +558,7 @@ async function finishPunch(fotoDataUrl){
   const data = todayStr(now);
   const hora = nowHMS(now);
   const f = FUNCIONARIAS.find(x => x.id === selectedId);
-  const registro = { id: uid(), funcionariaId: f.id, nome: f.nome, data, hora, tipo: pendingTipo, foto: fotoDataUrl, synced: false };
+  const registro = { id: uid(), funcionariaId: f.id, nome: f.nome, data, hora, tipo: pendingTipo, foto: fotoDataUrl, synced: false, notionSynced: false };
   const mk = monthKeyOf(data);
   const list = await getData(`registros:${mk}`, []);
   list.push(registro);
@@ -569,6 +569,7 @@ async function finishPunch(fotoDataUrl){
   $('#selected-hint').textContent = 'Toque no seu nome acima';
   $('#stamp-btn').disabled = true;
   syncRegistro(registro, mk); // envia para a planilha em tempo real (se configurado)
+  syncNotion(registro, mk); // envia para o Notion em tempo real
 }
 
 /* ============================ SINCRONIZAÇÃO EM TEMPO REAL (Planilha Google) ============================ */
@@ -590,19 +591,41 @@ async function syncRegistro(registro, mk){
     const idx = list.findIndex(r => r.id === registro.id);
     if(idx > -1){ list[idx].synced = true; await setData(`registros:${mk}`, list); }
   }catch(e){
-    console.warn('Sincronização falhou, será tentada novamente mais tarde', e);
+    console.warn('Sincronização com a planilha falhou, será tentada novamente mais tarde', e);
+  }
+}
+
+/* ============================ SINCRONIZAÇÃO EM TEMPO REAL (Notion) ============================ */
+async function syncNotion(registro, mk){
+  try{
+    const res = await fetch('/.netlify/functions/notion-sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: registro.id, data: registro.data, hora: registro.hora,
+        nome: registro.nome, tipo: registro.tipo
+      })
+    });
+    if(!res.ok) throw new Error(`status ${res.status}`);
+    registro.notionSynced = true;
+    const list = await getData(`registros:${mk}`, []);
+    const idx = list.findIndex(r => r.id === registro.id);
+    if(idx > -1){ list[idx].notionSynced = true; await setData(`registros:${mk}`, list); }
+  }catch(e){
+    console.warn('Sincronização com o Notion falhou, será tentada novamente mais tarde', e);
   }
 }
 
 async function resyncPending(){
-  if(!CONFIG.sheetsUrl) return;
   const now = new Date();
   for(let i = 0; i < 2; i++){ // verifica o mês atual e o anterior
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     const mk = `${d.getFullYear()}-${pad(d.getMonth()+1)}`;
     const list = await getData(`registros:${mk}`, []);
-    const pendentes = list.filter(r => !r.synced);
-    for(const r of pendentes){ await syncRegistro(r, mk); }
+    if(CONFIG.sheetsUrl){
+      for(const r of list.filter(r => !r.synced)){ await syncRegistro(r, mk); }
+    }
+    for(const r of list.filter(r => !r.notionSynced)){ await syncNotion(r, mk); }
   }
 }
 window.addEventListener('online', resyncPending);
