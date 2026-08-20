@@ -16,7 +16,7 @@ exports.handler = async (event) => {
     return { statusCode: 400, body: 'Invalid JSON' };
   }
 
-  const { id, data, hora, nome, tipo } = payload;
+  const { id, data, hora, nome, tipo, casa } = payload;
   if (!id || !data || !hora || !nome || !tipo) {
     return { statusCode: 400, body: 'Missing fields (id, data, hora, nome, tipo)' };
   }
@@ -34,7 +34,8 @@ exports.handler = async (event) => {
         'Funcionária': { title: [{ text: { content: nome } }] },
         'Tipo': { select: { name: tipo === 'entrada' ? 'Entrada' : 'Saída' } },
         'Data e Hora': { date: { start: `${data}T${hora}` } },
-        'ID': { rich_text: [{ text: { content: id } }] }
+        'ID': { rich_text: [{ text: { content: id } }] },
+        'Casa': { select: { name: casa || 'Casa' } }
       }
     })
   });

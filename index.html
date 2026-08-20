@@ -603,7 +603,7 @@ async function syncNotion(registro, mk){
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id: registro.id, data: registro.data, hora: registro.hora,
-        nome: registro.nome, tipo: registro.tipo
+        nome: registro.nome, tipo: registro.tipo, casa: CONFIG.casaNome || 'Casa'
       })
     });
     if(!res.ok) throw new Error(`status ${res.status}`);

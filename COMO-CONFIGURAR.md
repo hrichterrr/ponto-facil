@@ -95,9 +95,29 @@ Pronto! A partir de agora, toda vez que uma funcionária bater o ponto (com o ta
 
 ---
 
+## 4. Compartilhar com amigos sem misturar os registros (Notion)
+
+Além da planilha, o app já envia cada ponto batido em tempo real para um banco de dados no Notion — isso acontece sozinho, por trás dos panos, sem precisar colar nenhum link (diferente da planilha). A chave de acesso ao Notion fica configurada uma única vez no Netlify (por você), e vale para todo mundo que usar esse mesmo link/app.
+
+Isso é o que te permite compartilhar o app com amigos **sem bagunçar seus próprios registros**:
+
+1. Todo tablet/instalação tem seu próprio nome de casa em **⚙ → código administrativo → Configurações → "Nome da casa / anfitriã"**
+2. Cada ponto batido carrega esse nome junto para o Notion, numa coluna chamada **Casa**
+3. No Notion, já existe uma visualização pronta chamada **"Por Casa"** (aba ao lado de "Default view", na base "Ponto Fácil — Registros") que agrupa automaticamente os registros por casa — a sua fica separada da dos seus amigos, mesmo estando no mesmo banco de dados
+
+### Passo a passo para um amigo usar o app
+1. Ele instala o mesmo app (mesmo link do Netlify ou mesmo .apk que você já gerou)
+2. Na primeira vez, entra em ⚙ → código administrativo (o padrão é `1234`, ele pode trocar) → Configurações
+3. Preenche o **nome da casa dele** (ex: o nome da casa/pousada/família dele) e salva
+4. **Importante:** ele deve deixar o campo "planilha Google" em branco — esse campo aponta para a SUA planilha pessoal; se ele colar o mesmo link ali, os pontos dele vão aparecer misturados na sua planilha (o Notion, que já separa por Casa, continua funcionando normalmente mesmo com esse campo vazio)
+5. Pronto — os pontos dele passam a aparecer no Notion, agrupados no grupo dele na view "Por Casa", sem se misturar com os seus
+
+---
+
 ## Como tudo funciona junto
 
 - **Fonte oficial dos dados**: sempre o tablet (armazenamento local, funciona mesmo sem internet)
-- **Planilha Google**: uma cópia "espelho" enviada em tempo real, só para consulta rápida no computador — não é o banco de dados principal
+- **Planilha Google**: uma cópia "espelho" enviada em tempo real, só para consulta rápida no computador — não é o banco de dados principal, e é individual (só vale para quem colar o próprio link)
+- **Notion**: um banco compartilhado por todos que usam o app, com os registros de cada instalação separados pela coluna "Casa" (veja seção 4)
 - **Fechamento mensal (.xlsx)**: continua funcionando do mesmo jeito, exportado direto do tablet, com todos os detalhes e fotos
-- **Se o tablet ficar offline**: os pontos continuam sendo salvos normalmente; assim que a internet voltar, o app reenvia sozinho os pendentes para a planilha
+- **Se o tablet ficar offline**: os pontos continuam sendo salvos normalmente; assim que a internet voltar, o app reenvia sozinho os pendentes para a planilha e para o Notion
